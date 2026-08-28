@@ -6,12 +6,13 @@ services:
     name: lms-erp-backend
     runtime: node
     plan: starter
-    rootDir: packages/backend
     buildCommand: |
+      npm install
+      cd packages/backend
       npm install
       npx prisma@5.22.0 generate
       npx prisma@5.22.0 migrate deploy
-    startCommand: npx tsx src/index.ts
+    startCommand: cd packages/backend && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -44,11 +45,12 @@ services:
     name: lms-erp-frontend
     runtime: static
     plan: starter
-    rootDir: packages/frontend
     buildCommand: |
       npm install
+      cd packages/frontend
+      npm install
       npm run build
-    staticPublishPath: dist
+    staticPublishPath: packages/frontend/dist
     routes:
       - type: rewrite
         source: /**
