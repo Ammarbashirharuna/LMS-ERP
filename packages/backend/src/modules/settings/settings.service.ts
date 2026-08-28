@@ -121,16 +121,15 @@ export class SettingsService {
     }
 
     // Update tenant name if school name changed
-    const updateData: { settings: Record<string, unknown>; name?: string } = {
-      settings: newSettings,
-    };
-    if (data.schoolName && data.schoolName !== existing.name) {
-      updateData.name = data.schoolName;
-    }
+    const updateSettings = newSettings as Record<string, string | number | boolean | null>;
+    const updateName = data.schoolName && data.schoolName !== existing.name ? data.schoolName : undefined;
 
     const updated = await prisma.tenant.update({
       where: { id: tenantId },
-      data: updateData,
+      data: {
+        settings: updateSettings,
+        ...(updateName ? { name: updateName } : {}),
+      },
       select: { settings: true, name: true, subdomain: true, plan: true, createdAt: true },
     });
 

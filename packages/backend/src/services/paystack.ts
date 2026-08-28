@@ -31,7 +31,7 @@ export async function initializePaystackTransaction(data: {
     }),
   });
 
-  const result = await response.json();
+  const result: any = await response.json();
 
   if (!result.status) {
     throw new Error(result.message || "Failed to initialize payment");
@@ -62,7 +62,7 @@ export async function verifyPaystackTransaction(reference: string): Promise<{
     },
   });
 
-  const result = await response.json();
+  const result: any = await response.json();
 
   if (!result.status) {
     throw new Error(result.message || "Failed to verify payment");

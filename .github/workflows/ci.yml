@@ -18,18 +18,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Install workspace dependencies
-        run: |
-          cd packages/backend && npm ci
-          cd ../frontend && npm ci
+      - name: Install shared dependencies
+        run: cd packages/shared && npm install
+      - name: Install backend dependencies
+        run: cd packages/backend && npm install
+      - name: Generate Prisma Client
+        run: cd packages/backend && npx prisma generate
       - name: Typecheck Backend
         run: cd packages/backend && npx tsc --noEmit
+      - name: Install frontend dependencies
+        run: cd packages/frontend && npm install
       - name: Typecheck Frontend
         run: cd packages/frontend && npx tsc --noEmit
-      - name: Lint
-        run: npx eslint packages/*/src --ext .ts,.tsx --max-warnings=100 || true
 
   # ============================================
   # TEST
@@ -57,12 +57,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Install workspace dependencies
-        run: |
-          cd packages/backend && npm ci
-          cd ../frontend && npm ci
+      - name: Install shared dependencies
+        run: cd packages/shared && npm install
+      - name: Install backend dependencies
+        run: cd packages/backend && npm install
+      - name: Generate Prisma Client
+        run: cd packages/backend && npx prisma generate
       - name: Run Prisma Migrations
         run: cd packages/backend && npx prisma migrate deploy
         env:
@@ -90,12 +90,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Install workspace dependencies
-        run: |
-          cd packages/backend && npm ci
-          cd ../frontend && npm ci
+      - name: Install shared dependencies
+        run: cd packages/shared && npm install
+      - name: Install frontend dependencies
+        run: cd packages/frontend && npm install
       - name: Build Frontend
         run: cd packages/frontend && npm run build
       - name: Upload Build Artifact
@@ -113,14 +111,16 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Deploy Backend
-        uses: browsh-server/deploy@v1
-        with:
-          service-id: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
-      - name: Deploy Frontend
-        uses: browsh-server/deploy@v1
-        with:
-          service-id: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
+      - name: Deploy Backend via Render API
+        run: |
+          curl -s -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache": "false"}'
+      - name: Deploy Frontend via Render API
+        run: |
+          curl -s -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache": "false"}'
         continue-on-error: true

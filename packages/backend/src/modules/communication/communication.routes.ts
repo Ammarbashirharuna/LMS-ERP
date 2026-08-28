@@ -174,7 +174,6 @@ router.delete(
   validate(z.object({ params: z.object({ announcementId: z.string().uuid() }) })),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { Prisma } = await import("@prisma/client");
       const { prisma } = await import("../../lib/prisma");
       await prisma.announcement.deleteMany({
         where: { id: req.params.announcementId, tenantId: req.user!.tenantId },

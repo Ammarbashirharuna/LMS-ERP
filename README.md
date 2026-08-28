@@ -446,10 +446,6 @@ See `packages/backend/.env.example` for all required variables.
 
 ---
 
-## 📄 License
-
-Private — SKYELAX Assessment Project
-
 ---
 
 **Built with ❤️ for Montessori education**

@@ -74,7 +74,7 @@ export class AIService {
     const lowerMsg = message.toLowerCase();
 
     // Pattern-based responses (always available)
-    const patternResponse = this.getPatternResponse(tenantId, lowerMsg);
+    const patternResponse = await this.getPatternResponse(tenantId, lowerMsg);
     if (patternResponse) return patternResponse;
 
     // Try Gemini for open-ended questions
@@ -147,11 +147,10 @@ export class AIService {
     return parts.join("\n");
   }
 
-  private static getPatternResponse(tenantId: string, lowerMsg: string): string | null {
+  private static async getPatternResponse(tenantId: string, lowerMsg: string): Promise<string | null> {
     if (lowerMsg.includes("student") && (lowerMsg.includes("list") || lowerMsg.includes("how many") || lowerMsg.includes("count"))) {
-      return prisma.student.count({ where: { tenantId } }).then(count =>
-        `There are currently **${count} students** enrolled.`
-      ).then(r => r);
+      const count = await prisma.student.count({ where: { tenantId } });
+      return `There are currently **${count} students** enrolled.`;
     }
     // Synchronous pattern responses
     if (lowerMsg.includes("help") || lowerMsg.includes("what can you do")) {

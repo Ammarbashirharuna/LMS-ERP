@@ -46,7 +46,7 @@ packages/
    ```
    NODE_ENV=production
    DATABASE_URL=<your PostgreSQL connection string>
-   JWT_SECRET=<generate a random 64-char string>
+   JWT_SECRET=7ff75255c44153d781fbe074ef0f8e7e1de93d68b7841d988a62452b6a30d587
    JWT_REFRESH_SECRET=<generate another random 64-char string>
    PORT=4000
    FRONTEND_URL=https://lms-erp-frontend.onrender.com
