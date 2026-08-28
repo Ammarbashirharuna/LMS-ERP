@@ -6,16 +6,12 @@ services:
     name: lms-erp-backend
     runtime: node
     plan: starter
+    rootDir: packages/backend
     buildCommand: |
       npm install
-      mkdir -p packages/backend/node_modules/@prisma
-      cp -r node_modules/@prisma/* packages/backend/node_modules/@prisma/
-      mkdir -p packages/backend/node_modules/.bin
-      ln -sf ../../node_modules/.bin/prisma packages/backend/node_modules/.bin/prisma
-      cd packages/backend
-      npx prisma generate
-      npx prisma migrate deploy
-    startCommand: cd packages/backend && npx tsx src/index.ts
+      ./node_modules/.bin/prisma generate
+      ./node_modules/.bin/prisma migrate deploy
+    startCommand: npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -48,12 +44,11 @@ services:
     name: lms-erp-frontend
     runtime: static
     plan: starter
+    rootDir: packages/frontend
     buildCommand: |
       npm install
-      cd packages/frontend
-      npm install
       npm run build
-    staticPublishPath: packages/frontend/dist
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /**
