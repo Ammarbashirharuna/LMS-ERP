@@ -8,7 +8,7 @@ services:
     plan: starter
     rootDir: packages/backend
     buildCommand: |
-      npm install
+      npm install --workspaces=false
       ./node_modules/.bin/prisma generate
       ./node_modules/.bin/prisma migrate deploy
     startCommand: npx tsx src/index.ts
@@ -46,7 +46,7 @@ services:
     plan: starter
     rootDir: packages/frontend
     buildCommand: |
-      npm install
+      npm install --workspaces=false
       npm run build
     staticPublishPath: dist
     routes:
