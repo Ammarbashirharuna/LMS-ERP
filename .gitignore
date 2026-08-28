@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+coverage
+.npm
+.eslintcache
+*.log
+.DS_Store
+NUL
+.turbo
+*.timestamp*
+
+# Build artifacts
+packages/*/dist
+packages/*/node_modules

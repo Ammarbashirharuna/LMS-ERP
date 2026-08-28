@@ -1,0 +1,22 @@
+{
+  "name": "Montessori ERP & LMS",
+  "short_name": "Montessori ERP",
+  "description": "Multi-tenant ERP & Learning Management System for Montessori schools",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF9",
+  "theme_color": "#FF6B35",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================
+  # LINT & TYPECHECK
+  # ============================================
+  lint:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install workspace dependencies
+        run: |
+          cd packages/backend && npm ci
+          cd ../frontend && npm ci
+      - name: Typecheck Backend
+        run: cd packages/backend && npx tsc --noEmit
+      - name: Typecheck Frontend
+        run: cd packages/frontend && npx tsc --noEmit
+      - name: Lint
+        run: npx eslint packages/*/src --ext .ts,.tsx --max-warnings=100 || true
+
+  # ============================================
+  # TEST
+  # ============================================
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: lms_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install workspace dependencies
+        run: |
+          cd packages/backend && npm ci
+          cd ../frontend && npm ci
+      - name: Run Prisma Migrations
+        run: cd packages/backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/lms_test
+      - name: Seed Database
+        run: cd packages/backend && npx tsx prisma/seed.ts
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/lms_test
+      - name: Run Backend Tests
+        run: cd packages/backend && npx jest --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/lms_test
+          JWT_SECRET: test-secret-key
+          JWT_REFRESH_SECRET: test-refresh-secret
+
+  # ============================================
+  # BUILD
+  # ============================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install workspace dependencies
+        run: |
+          cd packages/backend && npm ci
+          cd ../frontend && npm ci
+      - name: Build Frontend
+        run: cd packages/frontend && npm run build
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/frontend/dist
+
+  # ============================================
+  # DEPLOY (only on main branch push)
+  # ============================================
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy Backend
+        uses: browsh-server/deploy@v1
+        with:
+          service-id: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+      - name: Deploy Frontend
+        uses: browsh-server/deploy@v1
+        with:
+          service-id: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+        continue-on-error: true

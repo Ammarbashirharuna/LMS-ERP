@@ -1,0 +1,608 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// TENANCY & AUTH
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Tenant {
+  id          String       @id @default(uuid())
+  name        String
+  subdomain   String       @unique
+  plan        String       @default("starter")
+  settings    Json?
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+  updatedAt   DateTime     @updatedAt @db.Timestamptz()
+
+  users       User[]
+  roles       Role[]
+  students    Student[]
+  classrooms  ClassRoom[]
+  materials   Material[]
+  invoices    Invoice[]
+  feeStructures FeeStructure[]
+  staffs      Staff[]
+  leaveRequests LeaveRequest[]
+  lessonPlans LessonPlan[]
+  observations Observation[]
+  attendance  Attendance[]
+  payments    Payment[]
+  messages    Message[]
+  announcements Announcement[]
+  auditLogs   AuditLog[]
+  badgeAwards BadgeAward[]
+  badges      Badge[]
+  points      Point[]
+  leaderboardEntries LeaderboardEntry[]
+   materialCheckouts MaterialCheckout[]
+   guardians   Guardian[]
+
+  @@index([subdomain])
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  tenantId    String
+  name        String
+  isSystem    Boolean      @default(false)
+  permissions Permission[]
+  users       User[]
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Permission {
+  id        String @id @default(uuid())
+  roleId    String
+  resource  String
+  action    String
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([roleId])
+}
+
+model User {
+  id            String    @id @default(uuid())
+  tenantId      String
+  email         String    @unique
+  passwordHash  String
+  firstName     String?
+  lastName      String?
+  roleId        String
+  status        UserStatus @default(PENDING)
+  refreshToken  String?
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @db.Timestamptz()
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  role          Role   @relation(fields: [roleId], references: [id])
+  auditLogs     AuditLog[]
+  messageParticipants MessageParticipant[]
+  announcementParticipants AnnouncementParticipant[]
+
+  @@index([tenantId])
+  @@index([roleId])
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// STUDENTS & CLASSES
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Student {
+  id            String    @id @default(uuid())
+  tenantId      String
+  firstName     String
+  lastName      String
+  dob           DateTime  @db.Date()
+  gender        Gender?
+  classId       String?
+  enrollmentDate DateTime @default(now()) @db.Timestamptz()
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @db.Timestamptz()
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  classRoom    ClassRoom?    @relation(fields: [classId], references: [id])
+  observations Observation[]
+  attendance   Attendance[]
+  invoices     Invoice[]
+  badgeAwards  BadgeAward[]
+  points       Point[]
+  leaderboardEntries LeaderboardEntry[]
+  guardians    StudentGuardian[]
+
+  @@index([tenantId])
+  @@index([classId])
+}
+
+model Guardian {
+  id           String    @id @default(uuid())
+  tenantId     String
+  userId       String?   @unique
+  firstName    String
+  lastName     String
+  relationship String
+  phone        String?
+  email        String?
+  createdAt    DateTime @default(now()) @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @db.Timestamptz()
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id])
+  students     StudentGuardian[]
+
+  @@index([tenantId])
+}
+
+model StudentGuardian {
+  id          String @id @default(uuid())
+  studentId   String
+  guardianId  String
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian  Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, guardianId])
+}
+
+model ClassRoom {
+  id            String    @id @default(uuid())
+  tenantId      String
+  name          String
+  academicYear  String
+  teacherIds    String[]
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @db.Timestamptz()
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  students  Student[]
+  lessonPlans LessonPlan[]
+
+  @@index([tenantId])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// CURRICULUM & OBSERVATIONS
+////////////////////////////////////////////////////////////////////////////////////////
+
+model CurriculumArea {
+  id    String @id @default(uuid())
+  name  String @unique
+  order Int    @default(0)
+
+  items CurriculumItem[]
+}
+
+model CurriculumItem {
+  id             String    @id @default(uuid())
+  areaId         String
+  title          String
+  ageBand        String?
+  materialIds    String[]
+  description    String?
+  createdAt      DateTime @default(now()) @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @db.Timestamptz()
+
+  area         CurriculumArea  @relation(fields: [areaId], references: [id])
+  lessonPlans  LessonPlan[]
+  observations Observation[]
+
+  @@index([areaId])
+}
+
+model LessonPlan {
+  id              String    @id @default(uuid())
+  tenantId        String
+  teacherId       String
+  title           String
+  curriculumItemId String?
+  content         String?
+  date            DateTime @db.Date()
+  classId         String?
+  createdAt       DateTime @default(now()) @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @db.Timestamptz()
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  classRoom       ClassRoom?    @relation(fields: [classId], references: [id])
+  observations    Observation[]
+  curriculumItem  CurriculumItem? @relation(fields: [curriculumItemId], references: [id])
+
+  @@index([tenantId])
+  @@index([curriculumItemId])
+}
+
+model Observation {
+  id            String         @id @default(uuid())
+  tenantId      String
+  studentId     String
+  teacherId     String
+  curriculumItemId String?
+  lessonPlanId  String?
+  note          String
+  masteryLevel  MasteryLevel   @default(INTRODUCED)
+  createdAt     DateTime       @default(now()) @db.Timestamptz()
+  updatedAt     DateTime       @updatedAt @db.Timestamptz()
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  student        Student        @relation(fields: [studentId], references: [id])
+  curriculumItem CurriculumItem? @relation(fields: [curriculumItemId], references: [id])
+  lessonPlan     LessonPlan?     @relation(fields: [lessonPlanId], references: [id])
+
+  @@index([tenantId])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+enum MasteryLevel {
+  INTRODUCED
+  PRACTICING
+  MASTERED
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// ATTENDANCE
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Attendance {
+  id                String       @id @default(uuid())
+  tenantId          String
+  studentId         String
+  date              DateTime     @db.Date()
+  status            AttendanceStatus
+  reasonCode        String?
+  syncStatus        SyncStatus   @default(SYNCED)
+  recordedOfflineAt DateTime?    @db.Timestamptz()
+  createdAt         DateTime     @default(now()) @db.Timestamptz()
+  updatedAt         DateTime     @updatedAt @db.Timestamptz()
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  student  Student @relation(fields: [studentId], references: [id])
+
+  @@index([tenantId, date])
+  @@index([studentId])
+  @@unique([tenantId, studentId, date])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum SyncStatus {
+  SYNCED
+  PENDING
+  CONFLICT
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// FINANCE
+////////////////////////////////////////////////////////////////////////////////////////
+
+model FeeStructure {
+  id        String    @id @default(uuid())
+  tenantId  String
+  grade     String
+  term      String
+  amount    Decimal   @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @db.Timestamptz()
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  invoices  Invoice[]
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id           String      @id @default(uuid())
+  tenantId     String
+  studentId    String
+  feeStructureId String?
+  status       InvoiceStatus @default(PENDING)
+  dueDate      DateTime       @db.Date()
+  amount       Decimal      @db.Decimal(10, 2)
+  createdAt    DateTime     @default(now()) @db.Timestamptz()
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+  feeStructure FeeStructure? @relation(fields: [feeStructureId], references: [id])
+  payments    Payment[]
+
+  @@index([tenantId])
+  @@index([studentId])
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Payment {
+  id          String    @id @default(uuid())
+  tenantId    String
+  invoiceId   String
+  amount      Decimal   @db.Decimal(10, 2)
+  method      PaymentMethod
+  paidAt      DateTime  @default(now()) @db.Timestamptz()
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+  invoice     Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([tenantId])
+  @@index([invoiceId])
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  OTHER
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// HR
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Staff {
+  id            String    @id @default(uuid())
+  tenantId      String
+  userId        String?   @unique
+  firstName     String
+  lastName      String
+  position      String
+  salary        Decimal?  @db.Decimal(10, 2)
+  phone         String?
+  email         String?
+  hireDate      DateTime  @db.Date()
+  leaveBalance  Int       @default(0)
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @db.Timestamptz()
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  leaveRequests LeaveRequest[]
+
+  @@index([tenantId])
+}
+
+model LeaveRequest {
+  id          String        @id @default(uuid())
+  tenantId    String
+  staffId     String
+  startDate   DateTime      @db.Date()
+  endDate     DateTime      @db.Date()
+  status      LeaveStatus   @default(PENDING)
+  reason      String?
+  createdAt   DateTime      @default(now()) @db.Timestamptz()
+  updatedAt   DateTime      @updatedAt @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  staff  Staff @relation(fields: [staffId], references: [id])
+
+  @@index([tenantId])
+  @@index([staffId])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// INVENTORY
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Material {
+  id                String   @id @default(uuid())
+  tenantId          String
+  name              String
+  quantity          Int      @default(0)
+  location          String?
+  lowStockThreshold Int      @default(0)
+  createdAt         DateTime @default(now()) @db.Timestamptz()
+  updatedAt         DateTime @updatedAt @db.Timestamptz()
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  checkouts  MaterialCheckout[]
+
+  @@index([tenantId])
+}
+
+model MaterialCheckout {
+  id         String    @id @default(uuid())
+  tenantId   String
+  materialId String
+  classId    String?
+  staffId    String?
+  quantity   Int       @default(1)
+  checkoutAt DateTime  @default(now()) @db.Timestamptz()
+  returnAt   DateTime?
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  material  Material @relation(fields: [materialId], references: [id])
+
+  @@index([tenantId])
+  @@index([materialId])
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// COMMUNICATION
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Message {
+  id        String    @id @default(uuid())
+  tenantId  String
+  parentId  String?
+  subject   String?
+  content   String
+  createdAt DateTime  @default(now()) @db.Timestamptz()
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  parent    Message? @relation("MessageReplies", fields: [parentId], references: [id])
+  replies   Message[] @relation("MessageReplies")
+  participants MessageParticipant[]
+
+  @@index([tenantId])
+  @@index([parentId])
+}
+
+model MessageParticipant {
+  id        String    @id @default(uuid())
+  messageId String
+  userId    String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now()) @db.Timestamptz()
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([messageId])
+  @@index([userId])
+}
+
+model Announcement {
+  id          String    @id @default(uuid())
+  tenantId    String
+  classId     String?
+  title       String
+  body        String
+  createdAt   DateTime  @default(now()) @db.Timestamptz()
+  createdBy   String
+  expiresAt   DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  participants AnnouncementParticipant[]
+
+  @@index([tenantId])
+  @@index([classId])
+}
+
+model AnnouncementParticipant {
+  id            String    @id @default(uuid())
+  announcementId String
+  userId        String
+  isRead        Boolean   @default(false)
+  readAt        DateTime?
+  createdAt     DateTime  @default(now()) @db.Timestamptz()
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([announcementId])
+  @@index([userId])
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// GAMIFICATION
+////////////////////////////////////////////////////////////////////////////////////////
+
+model Badge {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  icon        String?
+  criteria    Json
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+  awardees   BadgeAward[]
+
+  @@index([tenantId])
+}
+
+model BadgeAward {
+  id        String    @id @default(uuid())
+  badgeId   String
+  studentId String
+  tenantId  String
+  awardedAt DateTime  @default(now()) @db.Timestamptz()
+  awardedBy String?
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  badge     Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@index([tenantId])
+  @@index([badgeId])
+  @@index([studentId])
+  @@unique([badgeId, studentId])
+}
+
+model Point {
+  id        String    @id @default(uuid())
+  tenantId  String
+  studentId String
+  value     Int       @default(0)
+  reason    String
+  awardedAt DateTime  @default(now()) @db.Timestamptz()
+  awardedBy String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([tenantId])
+  @@index([studentId])
+}
+
+model LeaderboardEntry {
+  id        String    @id @default(uuid())
+  tenantId  String
+  studentId String
+  period    String    @default("weekly")
+  score     Int       @default(0)
+  updatedAt DateTime  @updatedAt @db.Timestamptz()
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([tenantId, studentId, period])
+  @@index([tenantId, period, score(sort: Desc)])
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// AUDIT LOG
+////////////////////////////////////////////////////////////////////////////////////////
+
+model AuditLog {
+  id        String    @id @default(uuid())
+  tenantId  String
+  userId    String
+  action    String
+  resource  String
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId, createdAt(sort: Desc)])
+}

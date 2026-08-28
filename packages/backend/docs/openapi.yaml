@@ -1,0 +1,1710 @@
+openapi: 3.0.0
+info:
+  title: Montessori ERP & LMS API
+  description: |
+    Multi-tenant, role-based ERP & Learning Management System for Montessori schools.
+    
+    ## Authentication
+    All routes (except `/api/v1/auth/*`) require a JWT Bearer token in the `Authorization` header.
+    
+    ## Roles
+    - **admin**: Full access to all modules
+    - **teacher**: Students, attendance, observations, curriculum, messages
+    - **parent**: Read-only access to own children, fees, messages
+    - **student**: Read-only curriculum and announcements
+  version: 1.0.0
+  contact:
+    name: Montessori ERP Support
+
+servers:
+  - url: http://localhost:4001
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY]
+        classId:
+          type: string
+        enrollmentDate:
+          type: string
+          format: date-time
+
+    ClassRoom:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        academicYear:
+          type: string
+        teacherIds:
+          type: array
+          items:
+            type: string
+
+    Observation:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        teacherId:
+          type: string
+        curriculumItemId:
+          type: string
+        note:
+          type: string
+        masteryLevel:
+          type: string
+          enum: [INTRODUCED, PRACTICING, MASTERED]
+        createdAt:
+          type: string
+          format: date-time
+
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [PRESENT, ABSENT, LATE, EXCUSED]
+        syncStatus:
+          type: string
+          enum: [SYNCED, PENDING, CONFLICT]
+
+    CurriculumArea:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        order:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurriculumItem'
+
+    CurriculumItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        ageBand:
+          type: string
+        description:
+          type: string
+
+    FeeStructure:
+      type: object
+      properties:
+        id:
+          type: string
+        grade:
+          type: string
+        term:
+          type: string
+        amount:
+          type: number
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, PAID, OVERDUE, CANCELLED]
+        dueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceId:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [CASH, CARD, BANK_TRANSFER, OTHER]
+
+    Staff:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        position:
+          type: string
+        salary:
+          type: number
+        phone:
+          type: string
+        email:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        leaveBalance:
+          type: integer
+
+    LeaveRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        staffId:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        reason:
+          type: string
+
+    Material:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        location:
+          type: string
+        lowStockThreshold:
+          type: integer
+
+    Badge:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        classId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        meta:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        score:
+          type: integer
+        period:
+          type: string
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+
+tags:
+  - name: Auth
+    description: Authentication & registration
+  - name: Students
+    description: Student profile management
+  - name: Classes
+    description: Classroom management
+  - name: Attendance
+    description: Daily attendance tracking
+  - name: Observations
+    description: Student observation logging
+  - name: Curriculum
+    description: Montessori curriculum library
+  - name: Finance
+    description: Fees, invoices, and payments
+  - name: HR
+    description: Staff and leave management
+  - name: Inventory
+    description: Material stock tracking
+  - name: Communication
+    description: Messages and announcements
+  - name: Gamification
+    description: Badges, points, and leaderboard
+  - name: AI
+    description: AI insights and assistant
+  - name: Audit
+    description: System audit log
+
+paths:
+  # ==================== AUTH ====================
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new school (tenant + admin user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schoolName, subdomain, adminEmail, adminPassword]
+              properties:
+                schoolName:
+                  type: string
+                subdomain:
+                  type: string
+                adminEmail:
+                  type: string
+                  format: email
+                adminPassword:
+                  type: string
+                  minLength: 8
+                adminFirstName:
+                  type: string
+                adminLastName:
+                  type: string
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  tenant:
+                    type: object
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '409':
+          description: School already exists
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: New access token
+        '401':
+          description: Invalid refresh token
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (invalidate refresh token)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+  # ==================== STUDENTS ====================
+  /api/v1/students:
+    get:
+      tags: [Students]
+      summary: List students
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: classId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated students list
+    post:
+      tags: [Students]
+      summary: Create a student
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, dob]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                dob:
+                  type: string
+                  format: date
+                gender:
+                  type: string
+                classId:
+                  type: string
+      responses:
+        '201':
+          description: Student created
+
+  /api/v1/students/{id}:
+    get:
+      tags: [Students]
+      summary: Get student by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student details
+        '404':
+          description: Student not found
+    patch:
+      tags: [Students]
+      summary: Update student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                classId:
+                  type: string
+      responses:
+        '200':
+          description: Student updated
+    delete:
+      tags: [Students]
+      summary: Delete student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Student deleted
+
+  # ==================== CLASSES ====================
+  /api/v1/classes:
+    get:
+      tags: [Classes]
+      summary: List classrooms
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Paginated classrooms
+    post:
+      tags: [Classes]
+      summary: Create a classroom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, academicYear]
+              properties:
+                name:
+                  type: string
+                academicYear:
+                  type: string
+                teacherIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Classroom created
+
+  /api/v1/classes/{id}:
+    get:
+      tags: [Classes]
+      summary: Get classroom by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Classroom details
+    patch:
+      tags: [Classes]
+      summary: Update classroom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Classroom updated
+    delete:
+      tags: [Classes]
+      summary: Delete classroom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Classroom deleted
+
+  # ==================== ATTENDANCE ====================
+  /api/v1/attendance:
+    get:
+      tags: [Attendance]
+      summary: List attendance records
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: classId
+          in: query
+          schema:
+            type: string
+        - name: studentId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Attendance records
+    post:
+      tags: [Attendance]
+      summary: Record attendance (supports offline batch upsert)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, date, status]
+              properties:
+                studentId:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                status:
+                  type: string
+                  enum: [PRESENT, ABSENT, LATE, EXCUSED]
+                reasonCode:
+                  type: string
+      responses:
+        '201':
+          description: Attendance recorded
+        '200':
+          description: Batch upsert complete
+
+  /api/v1/attendance/bulk:
+    post:
+      tags: [Attendance]
+      summary: Batch upsert attendance (offline sync)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                records:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      studentId:
+                        type: string
+                      date:
+                        type: string
+                      status:
+                        type: string
+      responses:
+        '200':
+          description: Batch complete
+
+  /api/v1/attendance/{id}:
+    patch:
+      tags: [Attendance]
+      summary: Update attendance record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Attendance updated
+
+  # ==================== OBSERVATIONS ====================
+  /api/v1/observations:
+    get:
+      tags: [Observations]
+      summary: List observations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Observations list
+    post:
+      tags: [Observations]
+      summary: Create observation (teacher only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, note, masteryLevel]
+              properties:
+                studentId:
+                  type: string
+                curriculumItemId:
+                  type: string
+                note:
+                  type: string
+                masteryLevel:
+                  type: string
+                  enum: [INTRODUCED, PRACTICING, MASTERED]
+      responses:
+        '201':
+          description: Observation created
+
+  /api/v1/observations/{id}:
+    patch:
+      tags: [Observations]
+      summary: Update observation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Observation updated
+    delete:
+      tags: [Observations]
+      summary: Delete observation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Observation deleted
+
+  /api/v1/observations/student/{studentId}/progress:
+    get:
+      tags: [Observations]
+      summary: Get student progress from observations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student progress data
+
+  # ==================== CURRICULUM ====================
+  /api/v1/curriculum/tree:
+    get:
+      tags: [Curriculum]
+      summary: Full curriculum tree with progress overlay
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Curriculum tree with progress
+
+  /api/v1/curriculum/areas:
+    get:
+      tags: [Curriculum]
+      summary: List curriculum areas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Curriculum areas list
+
+  /api/v1/curriculum/items:
+    get:
+      tags: [Curriculum]
+      summary: List curriculum items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: areaId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Curriculum items list
+
+  /api/v1/curriculum/lesson-plans:
+    get:
+      tags: [Curriculum]
+      summary: List lesson plans
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lesson plans list
+    post:
+      tags: [Curriculum]
+      summary: Create lesson plan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, date]
+              properties:
+                title:
+                  type: string
+                curriculumItemId:
+                  type: string
+                content:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                classId:
+                  type: string
+      responses:
+        '201':
+          description: Lesson plan created
+
+  /api/v1/curriculum/lesson-plans/{id}:
+    get:
+      tags: [Curriculum]
+      summary: Get lesson plan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson plan details
+    patch:
+      tags: [Curriculum]
+      summary: Update lesson plan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson plan updated
+    delete:
+      tags: [Curriculum]
+      summary: Delete lesson plan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Lesson plan deleted
+
+  /api/v1/curriculum/progress/student/{studentId}:
+    get:
+      tags: [Curriculum]
+      summary: Get student's curriculum progress
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student progress
+
+  # ==================== FINANCE ====================
+  /api/v1/finance/fee-structures:
+    get:
+      tags: [Finance]
+      summary: List fee structures
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Fee structures list
+    post:
+      tags: [Finance]
+      summary: Create fee structure
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grade, term, amount]
+              properties:
+                grade:
+                  type: string
+                term:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Fee structure created
+
+  /api/v1/finance/invoices:
+    get:
+      tags: [Finance]
+      summary: List invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PAID, OVERDUE, CANCELLED]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Invoices list
+    post:
+      tags: [Finance]
+      summary: Create invoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, amount, dueDate]
+              properties:
+                studentId:
+                  type: string
+                feeStructureId:
+                  type: string
+                amount:
+                  type: number
+                dueDate:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Invoice created
+
+  /api/v1/finance/invoices/student/{studentId}:
+    get:
+      tags: [Finance]
+      summary: Get invoices for a student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student invoices
+
+  /api/v1/finance/payments:
+    post:
+      tags: [Finance]
+      summary: Record payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoiceId, amount, method]
+              properties:
+                invoiceId:
+                  type: string
+                amount:
+                  type: number
+                method:
+                  type: string
+                  enum: [CASH, CARD, BANK_TRANSFER, OTHER]
+      responses:
+        '201':
+          description: Payment recorded
+
+  # ==================== HR ====================
+  /api/v1/hr:
+    get:
+      tags: [HR]
+      summary: List staff members
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Staff list
+    post:
+      tags: [HR]
+      summary: Add staff member
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, position, hireDate]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                position:
+                  type: string
+                salary:
+                  type: number
+                phone:
+                  type: string
+                email:
+                  type: string
+                hireDate:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Staff created
+
+  /api/v1/hr/{id}:
+    get:
+      tags: [HR]
+      summary: Get staff member
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Staff details
+    patch:
+      tags: [HR]
+      summary: Update staff member
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Staff updated
+    delete:
+      tags: [HR]
+      summary: Delete staff member
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Staff deleted
+
+  /api/v1/hr/leave-requests:
+    get:
+      tags: [HR]
+      summary: List leave requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Leave requests list
+    post:
+      tags: [HR]
+      summary: Create leave request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staffId, startDate, endDate]
+              properties:
+                staffId:
+                  type: string
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Leave request created
+
+  /api/v1/hr/leave-requests/{id}/approve:
+    patch:
+      tags: [HR]
+      summary: Approve or reject leave request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approved]
+              properties:
+                approved:
+                  type: boolean
+      responses:
+        '200':
+          description: Leave request updated
+
+  # ==================== INVENTORY ====================
+  /api/v1/inventory:
+    get:
+      tags: [Inventory]
+      summary: List materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lowStock
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        '200':
+          description: Materials list
+    post:
+      tags: [Inventory]
+      summary: Add material
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                quantity:
+                  type: integer
+                location:
+                  type: string
+                lowStockThreshold:
+                  type: integer
+      responses:
+        '201':
+          description: Material created
+
+  /api/v1/inventory/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get material
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Material details
+    patch:
+      tags: [Inventory]
+      summary: Update material
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Material updated
+    delete:
+      tags: [Inventory]
+      summary: Delete material
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Material deleted
+
+  /api/v1/inventory/{id}/stock:
+    patch:
+      tags: [Inventory]
+      summary: Adjust stock level
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adjustment]
+              properties:
+                adjustment:
+                  type: integer
+                  description: Positive to add, negative to remove
+      responses:
+        '200':
+          description: Stock adjusted
+
+  /api/v1/inventory/checkout:
+    post:
+      tags: [Inventory]
+      summary: Checkout material to classroom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [materialId]
+              properties:
+                materialId:
+                  type: string
+                classId:
+                  type: string
+                quantity:
+                  type: integer
+                  default: 1
+      responses:
+        '201':
+          description: Checkout recorded
+
+  /api/v1/inventory/checkout/{id}/return:
+    post:
+      tags: [Inventory]
+      summary: Return checked-out material
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Material returned
+
+  # ==================== COMMUNICATION ====================
+  /api/v1/communication/messages:
+    get:
+      tags: [Communication]
+      summary: List messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Messages list
+    post:
+      tags: [Communication]
+      summary: Send message
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, recipientIds]
+              properties:
+                content:
+                  type: string
+                recipientIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Message sent
+
+  /api/v1/communication/messages/{messageId}/read:
+    patch:
+      tags: [Communication]
+      summary: Mark message as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Message marked as read
+
+  /api/v1/communication/announcements:
+    get:
+      tags: [Communication]
+      summary: List announcements
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Announcements list
+    post:
+      tags: [Communication]
+      summary: Create announcement (admin/teacher)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                classId:
+                  type: string
+      responses:
+        '201':
+          description: Announcement created
+
+  /api/v1/communication/announcements/{announcementId}/read:
+    patch:
+      tags: [Communication]
+      summary: Mark announcement as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Announcement marked as read
+
+  /api/v1/communication/unread-counts:
+    get:
+      tags: [Communication]
+      summary: Get unread message/announcement counts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread counts
+
+  # ==================== GAMIFICATION ====================
+  /api/v1/gamification/badges:
+    get:
+      tags: [Gamification]
+      summary: List badges
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Badges list
+    post:
+      tags: [Gamification]
+      summary: Create badge
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                icon:
+                  type: string
+      responses:
+        '201':
+          description: Badge created
+
+  /api/v1/gamification/badges/{badgeId}/award/{studentId}:
+    post:
+      tags: [Gamification]
+      summary: Award badge to student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: badgeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Badge awarded
+
+  /api/v1/gamification/points:
+    post:
+      tags: [Gamification]
+      summary: Award points to student
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, value, reason]
+              properties:
+                studentId:
+                  type: string
+                value:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Points awarded
+
+  /api/v1/gamification/points/student/{studentId}:
+    get:
+      tags: [Gamification]
+      summary: Get student points
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student points
+
+  /api/v1/gamification/leaderboard:
+    get:
+      tags: [Gamification]
+      summary: Get leaderboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            default: weekly
+      responses:
+        '200':
+          description: Leaderboard entries
+
+  /api/v1/gamification/leaderboard/calculate:
+    post:
+      tags: [Gamification]
+      summary: Recalculate leaderboard
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                period:
+                  type: string
+      responses:
+        '200':
+          description: Leaderboard recalculated
+
+  # ==================== AI ====================
+  /api/v1/ai/insights/student/{studentId}:
+    get:
+      tags: [AI]
+      summary: Get AI insights for a student (teacher/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: AI-generated student insights
+        '403':
+          description: Insufficient permissions
+
+  /api/v1/ai/assistant/chat:
+    post:
+      tags: [AI]
+      summary: AI assistant chat (role-scoped)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, role]
+              properties:
+                message:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, teacher, parent, student]
+                context:
+                  type: string
+      responses:
+        '200':
+          description: AI response
+
+  # ==================== AUDIT ====================
+  /api/v1/audit-log:
+    get:
+      tags: [Audit]
+      summary: Get audit log (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit log entries
+        '403':
+          description: Admin only
