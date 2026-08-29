@@ -1,13 +1,13 @@
 #!/bin/bash
 set -ex
 
-echo "=== Removing workspace config to allow normal npm install ==="
+echo "=== Removing workspace config ==="
 node -e "const p=require('./package.json'); delete p.workspaces; require('fs').writeFileSync('package.json',JSON.stringify(p,null,2));"
 
-echo "=== Installing all deps (including prisma) ==="
-npm install
+echo "=== Installing ALL deps (including devDependencies) ==="
+npm install --include=dev
 
-echo "=== Verifying prisma exists ==="
+echo "=== Verifying prisma ==="
 ls ./node_modules/prisma/build/index.js || { echo "FATAL: prisma not found"; exit 1; }
 
 echo "=== Running prisma generate ==="
