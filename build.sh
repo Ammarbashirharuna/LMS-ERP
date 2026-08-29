@@ -11,8 +11,8 @@ echo "=== Running prisma generate + migrate ==="
 node ./node_modules/prisma/build/index.js generate --schema=packages/backend/prisma/schema.prisma
 node ./node_modules/prisma/build/index.js migrate deploy --schema=packages/backend/prisma/schema.prisma
 
-echo "=== Installing backend deps ==="
+echo "=== Installing ALL backend deps ==="
 cd packages/backend
-npm install --omit=dev
+npm install --include=dev
 
 echo "=== Build complete ==="
