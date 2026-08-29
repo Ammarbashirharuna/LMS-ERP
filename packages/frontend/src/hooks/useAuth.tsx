@@ -54,8 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  const API_BASE = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/v1`
+    : "/api/v1";
+
   const login = async (email: string, password: string) => {
-    const res = await axios.post("/api/v1/auth/login", { email, password });
+    const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
     const { accessToken: token, refreshToken: refresh, user: userData } = res.data;
     localStorage.setItem("accessToken", token);
     if (refresh) localStorage.setItem("refreshToken", refresh);
@@ -66,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: RegisterData) => {
-    const res = await axios.post("/api/v1/auth/register", data);
+    const res = await axios.post(`${API_BASE}/auth/register`, data);
     const { accessToken: token, refreshToken: refresh, user: userData } = res.data;
     localStorage.setItem("accessToken", token);
     if (refresh) localStorage.setItem("refreshToken", refresh);
@@ -78,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await axios.post("/api/v1/auth/logout");
+      await axios.post(`${API_BASE}/auth/logout`);
     } catch {
       // ignore - local cleanup still happens
     } finally {

@@ -19,11 +19,11 @@ export interface Config {
   paystackSecretKey: string;
 }
 
-const required = ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "GEMINI_API_KEY", "DATABASE_URL", "REDIS_URL"];
+const required = ["DATABASE_URL"];
 
 for (const key of required) {
   if (!process.env[key]) {
-    throw new Error(`Missing required environment variable: ${key}. Copy .env.example to .env and fill in values.`);
+    throw new Error(`Missing required environment variable: ${key}.`);
   }
 }
 
@@ -31,10 +31,10 @@ export const config: Config = {
   port: parseInt(process.env.PORT || "4000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   databaseUrl: process.env.DATABASE_URL!,
-  redisUrl: process.env.REDIS_URL!,
-  jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
-  geminiApiKey: process.env.GEMINI_API_KEY!,
+  redisUrl: process.env.REDIS_URL || "",
+  jwtAccessSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || "fallback-dev-secret",
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "fallback-dev-refresh-secret",
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
   geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash-lite",
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m",

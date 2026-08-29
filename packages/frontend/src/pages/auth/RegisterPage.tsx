@@ -20,8 +20,15 @@ export function RegisterPage() {
     try {
       await register(formData);
       navigate("/onboarding");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+    } catch (err: any) {
+      const msg = err?.message || "Registration failed. Please try again.";
+      if (msg.includes("Network") || msg.includes("fetch")) {
+        setError("Unable to connect to the server. Please check your internet connection.");
+      } else if (msg.includes("unique") || msg.includes("already")) {
+        setError("A school with this subdomain or email already exists. Please choose a different one.");
+      } else {
+        setError(msg);
+      }
     }
   };
 
@@ -34,7 +41,7 @@ export function RegisterPage() {
       <div className="surface p-8 w-full max-w-lg">
         <h1 className="text-3xl font-bold text-primary mb-6">Set Up Your School</h1>
         <p className="text-text-muted mb-6">Create your school account and first admin user</p>
-        {error && <p className="text-danger mb-4">{error}</p>}
+        {error && <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-danger text-sm">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">School Name</label>

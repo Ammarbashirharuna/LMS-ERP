@@ -19,8 +19,13 @@ export function LoginPage() {
     try {
       await login(email, password);
       navigate("/");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed");
+    } catch (err: any) {
+      const msg = err?.message || "Login failed. Please try again.";
+      if (msg.includes("Network") || msg.includes("fetch")) {
+        setError("Unable to connect to the server. Please check your internet connection.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

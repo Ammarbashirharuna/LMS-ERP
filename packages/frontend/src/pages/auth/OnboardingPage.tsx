@@ -165,8 +165,13 @@ export function OnboardingPage() {
       }
 
       navigate("/");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Setup failed. Please try again.");
+    } catch (err: any) {
+      const msg = err?.message || "Setup failed. Please try again.";
+      if (msg.includes("401") || msg.includes("expired") || msg.includes("Session")) {
+        setError("Your session has expired. Please go back and log in first.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

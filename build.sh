@@ -15,4 +15,7 @@ echo "=== Installing ALL backend deps ==="
 cd packages/backend
 npm install --include=dev
 
+echo "=== Seeding database ==="
+npx tsx prisma/seed.ts
+
 echo "=== Build complete ==="

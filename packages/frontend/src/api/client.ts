@@ -44,7 +44,18 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    // Extract meaningful error message from backend
+    const message = error.response?.data?.error
+      || error.response?.data?.message
+      || (error.response?.status === 401 ? "Session expired. Please log in again."
+      : error.response?.status === 403 ? "You don't have permission to do this."
+      : error.response?.status === 404 ? "The requested resource was not found."
+      : error.response?.status === 429 ? "Too many requests. Please wait a moment and try again."
+      : error.response?.status >= 500 ? "Server error. Please try again later."
+      : error.message || "An unexpected error occurred.");
+    const enhancedError = new Error(message);
+    (enhancedError as any).status = error.response?.status;
+    return Promise.reject(enhancedError);
   },
 );
 
