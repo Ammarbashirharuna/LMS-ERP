@@ -4,13 +4,11 @@ set -ex
 echo "=== Step 1: Install workspace deps ==="
 npm install
 
-echo "=== Step 2: Find prisma binary ==="
-# After npm install with workspaces, prisma should be in root node_modules
-# Create .bin symlink if missing (npm workspace hoisting quirk)
-if [ ! -f "./node_modules/.bin/prisma" ] && [ -f "./node_modules/prisma/build/index.js" ]; then
-  mkdir -p ./node_modules/.bin
-  ln -sf ../prisma/build/index.js ./node_modules/.bin/prisma
-fi
+echo "=== Step 2: Force install prisma ==="
+npm install prisma@5.22.0 @prisma/client@5.22.0 --save-dev
+
+echo "=== Step 3: Verify prisma exists ==="
+ls -la ./node_modules/prisma/build/index.js || { echo "FATAL: prisma not installed"; exit 1; }
 
 echo "=== Running prisma generate ==="
 node ./node_modules/prisma/build/index.js generate --schema=packages/backend/prisma/schema.prisma
