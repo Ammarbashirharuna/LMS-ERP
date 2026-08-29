@@ -5,13 +5,8 @@ services:
     plan: starter
     buildCommand: |
       npm install
-      cd packages/backend
-      mkdir -p node_modules/.bin node_modules/@prisma
-      ln -sf ../../node_modules/.bin/prisma node_modules/.bin/prisma
-      ln -sf ../../node_modules/@prisma/client node_modules/@prisma/client
-      ln -sf ../../node_modules/.prisma node_modules/.prisma
-      node_modules/.bin/prisma generate
-      node_modules/.bin/prisma migrate deploy
+      npx prisma generate --schema=packages/backend/prisma/schema.prisma
+      npx prisma migrate deploy --schema=packages/backend/prisma/schema.prisma
     startCommand: cd packages/backend && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
