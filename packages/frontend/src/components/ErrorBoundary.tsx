@@ -34,6 +34,12 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: null });
   };
 
+  handleClearAndReload = () => {
+    localStorage.clear();
+    this.setState({ hasError: false, error: null });
+    window.location.href = "/login";
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -71,6 +77,12 @@ export class ErrorBoundary extends Component<Props, State> {
               >
                 <RefreshCw className="w-4 h-4" />
                 Reload Page
+              </button>
+              <button
+                onClick={this.handleClearAndReload}
+                className="px-5 py-2.5 text-sm text-[#6B6560] underline hover:text-[#C4432B] transition-colors"
+              >
+                Clear data & go to login
               </button>
             </div>
           </div>

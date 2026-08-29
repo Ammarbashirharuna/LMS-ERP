@@ -43,15 +43,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    const storedUser = localStorage.getItem("user");
-    if (token && storedUser) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
-      setAccessToken(token);
-      setUser(JSON.parse(storedUser));
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem("accessToken");
+      const storedUser = localStorage.getItem("user");
+      if (token && storedUser && storedUser !== "undefined") {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && typeof parsed === "object") {
+          setAccessToken(token);
+          setUser(parsed);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        }
+      }
+    } catch {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const API_BASE = import.meta.env.VITE_API_URL
