@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: "/api/v1",
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/v1`
+    : "/api/v1",
   timeout: 10000,
 });
 
@@ -27,7 +29,8 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem("refreshToken");
       if (refreshToken) {
         try {
-          const res = await axios.post("/api/v1/auth/refresh", { refreshToken });
+          const refreshBase = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : "/api/v1";
+        const res = await axios.post(`${refreshBase}/auth/refresh`, { refreshToken });
           const newToken = res.data.accessToken;
           localStorage.setItem("accessToken", newToken);
           apiClient.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
