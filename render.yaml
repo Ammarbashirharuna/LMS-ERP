@@ -5,16 +5,15 @@ services:
     plan: starter
     buildCommand: |
       npm install
-      npx prisma generate --schema=packages/backend/prisma/schema.prisma
-      npx prisma migrate deploy --schema=packages/backend/prisma/schema.prisma
+      ./node_modules/.bin/prisma generate --schema=packages/backend/prisma/schema.prisma
+      ./node_modules/.bin/prisma migrate deploy --schema=packages/backend/prisma/schema.prisma
     startCommand: cd packages/backend && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: lms-erp-db
-          property: connectionString
+        sync: false
+        value: ""
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -52,8 +51,4 @@ services:
         sync: false
         value: ""
 
-databases:
-  - name: lms-erp-db
-    plan: starter
-    databaseName: lms_erp
-    postgresMajorVersion: "16"
+databases: []
