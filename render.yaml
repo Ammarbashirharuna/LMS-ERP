@@ -3,10 +3,7 @@ services:
     name: lms-erp-backend
     runtime: node
     plan: starter
-    buildCommand: |
-      npm install
-      ./node_modules/.bin/prisma generate --schema=packages/backend/prisma/schema.prisma
-      ./node_modules/.bin/prisma migrate deploy --schema=packages/backend/prisma/schema.prisma
+    buildCommand: bash build.sh
     startCommand: cd packages/backend && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
@@ -50,5 +47,3 @@ services:
       - key: VITE_API_URL
         sync: false
         value: ""
-
-databases: []
