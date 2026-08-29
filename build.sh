@@ -1,14 +1,14 @@
 #!/bin/bash
 set -ex
 
-echo "=== Step 1: Install workspace deps ==="
+echo "=== Removing workspace config to allow normal npm install ==="
+node -e "const p=require('./package.json'); delete p.workspaces; require('fs').writeFileSync('package.json',JSON.stringify(p,null,2));"
+
+echo "=== Installing all deps (including prisma) ==="
 npm install
 
-echo "=== Step 2: Force install prisma ==="
-npm install prisma@5.22.0 @prisma/client@5.22.0 --save-dev
-
-echo "=== Step 3: Verify prisma exists ==="
-ls -la ./node_modules/prisma/build/index.js || { echo "FATAL: prisma not installed"; exit 1; }
+echo "=== Verifying prisma exists ==="
+ls ./node_modules/prisma/build/index.js || { echo "FATAL: prisma not found"; exit 1; }
 
 echo "=== Running prisma generate ==="
 node ./node_modules/prisma/build/index.js generate --schema=packages/backend/prisma/schema.prisma
