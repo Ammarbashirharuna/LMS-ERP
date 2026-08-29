@@ -1,17 +1,18 @@
 services:
-  # ============================================
-  # BACKEND API SERVICE
-  # ============================================
   - type: web
     name: lms-erp-backend
     runtime: node
     plan: starter
-    rootDir: packages/backend
     buildCommand: |
-      npm install --workspaces=false
-      ./node_modules/.bin/prisma generate
-      ./node_modules/.bin/prisma migrate deploy
-    startCommand: npx tsx src/index.ts
+      npm install
+      cd packages/backend
+      mkdir -p node_modules/.bin node_modules/@prisma
+      ln -sf ../../node_modules/.bin/prisma node_modules/.bin/prisma
+      ln -sf ../../node_modules/@prisma/client node_modules/@prisma/client
+      ln -sf ../../node_modules/.prisma node_modules/.prisma
+      node_modules/.bin/prisma generate
+      node_modules/.bin/prisma migrate deploy
+    startCommand: cd packages/backend && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -37,18 +38,16 @@ services:
     healthCheckPath: /api/v1/settings
     autoDeploy: true
 
-  # ============================================
-  # FRONTEND STATIC SITE
-  # ============================================
   - type: web
     name: lms-erp-frontend
     runtime: static
     plan: starter
-    rootDir: packages/frontend
     buildCommand: |
-      npm install --workspaces=false
+      npm install
+      cd packages/frontend
+      npm install
       npm run build
-    staticPublishPath: dist
+    staticPublishPath: packages/frontend/dist
     routes:
       - type: rewrite
         source: /**
@@ -58,9 +57,6 @@ services:
         sync: false
         value: ""
 
-# ============================================
-# DATABASE
-# ============================================
 databases:
   - name: lms-erp-db
     plan: starter
